@@ -2,85 +2,73 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using easyInputs;
+using System;
 
 public class CapuchinClimbtest : MonoBehaviour
 {
-    [Header("Capuchin Climbing By Rateix! This isnt yours. ")]
+    [Header("Capuchin Climbing By Rateix! This isnt yours.")]
     public Rigidbody leftController;
     public Rigidbody rightController;
 
-   public Rigidbody rb;
+    public Rigidbody rb;
 
     public float LeftDistance;
     public float RightDistance;
-   public bool holdingleft;
+    public bool holdingleft;
     public bool holdingright;
+
+    public float proximityDistance = 0.5f;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        rb.GetComponent<Transform>();
-        leftController.GetComponent<Transform>();
-        rightController.GetComponent<Transform>();
     }
 
     void Update()
     {
-        LeftDistance = Vector3.Distance(rb.position, leftController.position);
-        RightDistance = Vector3.Distance(rb.position, rightController.position);
-        if (EasyInputs.GetGripButtonDown(EasyHand.LeftHand))
-        {
-            holdingleft = true; 
-        }
-        else
-        {
-            holdingleft = false;
-        }
-        if (EasyInputs.GetGripButtonDown(EasyHand.RightHand))
-        {
-            holdingright = true;
-        }
-        else
-        {
-            holdingright = false;
-        }
+        Collider[] leftColliders = Physics.OverlapSphere(leftController.position, proximityDistance);
+        Collider[] rightColliders = Physics.OverlapSphere(rightController.position, proximityDistance);
+        
+        holdingleft = EasyInputs.GetGripButtonDown(EasyHand.LeftHand) && leftColliders.Length > 0;
+        holdingright = EasyInputs.GetGripButtonDown(EasyHand.RightHand) && rightColliders.Length > 0;
 
-if (LeftDistance < 0.5f && holdingleft)
+        HandleClimbing(holdingleft, leftController);
+        HandleClimbing(holdingright, rightController);
+    }
+
+private void HandleClimbing(bool isHolding, Rigidbody controller)
 {
-    if (leftController.GetComponent<FixedJoint>() == null)
+    FixedJoint fixedJoint = controller.GetComponent<FixedJoint>();
+
+   
+    Collider[] nearbyColliders = Physics.OverlapSphere(controller.position, proximityDistance);
+    
+    bool isNearTargetObject = Array.Exists(nearbyColliders, collider => collider.attachedRigidbody == rb);
+
+    
+    if (isHolding && isNearTargetObject)
     {
-        FixedJoint fixedJoint = leftController.gameObject.AddComponent<FixedJoint>();
-        fixedJoint.connectedBody = rb;
+        if (fixedJoint == null)
+        {
+            fixedJoint = controller.gameObject.AddComponent<FixedJoint>();
+            fixedJoint.connectedBody = rb;
+        }
+    }
+  
+    else if (!isHolding)
+    {
+        if (fixedJoint != null)
+        {
+            Destroy(fixedJoint);
+        }
     }
 }
-else
-{
-    FixedJoint fixedJoint = leftController.GetComponent<FixedJoint>();
-    if (fixedJoint != null)
-    {
-        Destroy(fixedJoint);
-    }
-}
 
-if (RightDistance < 0.5f && holdingright)
-{
-    if (rightController.GetComponent<FixedJoint>() == null)
-    {
-        FixedJoint fixedJoint = rightController.gameObject.AddComponent<FixedJoint>();
-        fixedJoint.connectedBody = rb;
-}
-}
-else
-{
-    FixedJoint fixedJoint = rightController.GetComponent<FixedJoint>();
-    if (fixedJoint != null)
-    {
-        Destroy(fixedJoint);
-    }
-}
-}
-}
 
+
+
+
+}
 // MIT License
 
 // Copyright (c) 2023 Rateix
